@@ -2,18 +2,16 @@ import asyncio
 import time
 import pandas as pd
 from web3 import Web3
-from web3.middleware import geth_poa_middleware
 
-# Подключаемся к BSC
-# Через Web3.HTTPProvider к публичному BSC-ноду:
-w3 = Web3(Web3.HTTPProvider('https://bsc-dataseed1.binance.org'))
-w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+# Подключаемся к Ethereum Mainnet
+# Используйте Infura, Alchemy или другой публичный Ethereum-ноду
+w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/3770157410db4d8d8d5c174987bd85f0'))
 
-# Whale threshold
-WHALE_THRESHOLD = 10  # в ETH/BNB
+# Whale threshold (в ETH)
+WHALE_THRESHOLD = 10  # Порог для крупных транзакций
 
 # Инициализируем CSV (если не существует)
-CSV_FILE = 'onchain_data.csv'
+CSV_FILE = 'onchain_data_eth.csv'
 try:
     pd.read_csv(CSV_FILE)
 except FileNotFoundError:

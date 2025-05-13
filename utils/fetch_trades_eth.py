@@ -8,22 +8,22 @@ async def fetch_bybit_trades():
 
     # Инициализация CSV
     trades_df = pd.DataFrame(columns=['timestamp', 'price', 'volume', 'side'])
-    trades_df.to_csv('bybit_trades.csv', index=False)
+    trades_df.to_csv('bybit_trades_eth.csv', index=False)
 
     while True:
         try:
             async with websockets.connect(uri, ping_interval=20, ping_timeout=10) as websocket:
                 await websocket.send(json.dumps({
                     "op": "subscribe",
-                    "args": ["publicTrade.BTCUSDT"]
+                    "args": ["publicTrade.ETHUSDT"]
                 }))
-                print("✅ Connected to Bybit Trade WebSocket")
+                print("✅ Connected to Bybit Trade WebSocket for ETHUSDT")
 
                 while True:
                     try:
                         data = json.loads(await websocket.recv())
 
-                        if 'topic' in data and data['topic'] == "publicTrade.BTCUSDT":
+                        if 'topic' in data and data['topic'] == "publicTrade.ETHUSDT":
                             for trade in data.get('data', []):
                                 trade_df = pd.DataFrame({
                                     'timestamp': [trade['T']],
@@ -31,8 +31,8 @@ async def fetch_bybit_trades():
                                     'volume': [float(trade['v'])],
                                     'side': [trade['S']]
                                 })
-                                trade_df.to_csv('bybit_trades.csv', mode='a', header=False, index=False)
-                                print(f"[TRADE] {trade['S']} {trade['v']} @ {trade['p']}")
+                                trade_df.to_csv('bybit_trades_eth.csv', mode='a', header=False, index=False)
+                                print(f"[TRADE] {trade['S']} {trade['v']} ETH @ {trade['p']}")
 
                     except (websockets.exceptions.ConnectionClosed, asyncio.TimeoutError) as e:
                         print(f"🔁 Connection error: {e}. Reconnecting...")

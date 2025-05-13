@@ -4,21 +4,22 @@ import logging
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from tqdm import tqdm  # Добавлен импорт tqdm
 import matplotlib.pyplot as plt
-
-from tqdm import tqdm
-from imblearn.over_sampling import SMOTE
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.utils.class_weight import compute_class_weight
 from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE
 from datetime import datetime
+from sklearn.preprocessing import StandardScaler
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
-class ModelTrainer:
+class ModelTrainerUpdate:
     '''
-    Это базавая версия класса, можно сказать эталонная
+    Этот класс был создан как более суровая версия тренировки, с разными условиями проверки для предотвращения утечек
+    и подсматривания в будущее
     '''
     def __init__(self, data_path, model_output_path, target_col,
                  use_cv=True, n_splits=5, use_smote=True, random_state=42,
@@ -55,6 +56,13 @@ class ModelTrainer:
         if 'datetime' in df.columns:
             df = df.drop(columns=['datetime'])
 
+        # Дополнительная обработка выбросов (например, используя IQR)
+        for col in df.select_dtypes(include=['float64', 'int64']):
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            df = df[(df[col] >= (Q1 - 1.5 * IQR)) & (df[col] <= (Q3 + 1.5 * IQR))]
+
         X = df.drop(columns=[self.target_col])
         y = df[self.target_col].astype(int)
 
@@ -64,6 +72,11 @@ class ModelTrainer:
 
         logging.info("Target distribution (train):\n%s", y_train.value_counts(normalize=True))
         logging.info("Target distribution (test):\n%s", y_test.value_counts(normalize=True))
+
+        # Стандартизация признаков
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
 
         return X_train, X_test, y_train, y_test
 
@@ -83,8 +96,8 @@ class ModelTrainer:
             for fold, (train_idx, val_idx) in tqdm(enumerate(kf.split(X_train, y_train)), total=self.n_splits, desc="Кросс-валидация"):
                 logging.info("[*] Fold %d", fold + 1)
 
-                X_fold_train, y_fold_train = X_train.iloc[train_idx], y_train.iloc[train_idx]
-                X_fold_val, y_fold_val = X_train.iloc[val_idx], y_train.iloc[val_idx]
+                X_fold_train, y_fold_train = X_train[train_idx], y_train[train_idx]
+                X_fold_val, y_fold_val = X_train[val_idx], y_train[val_idx]
 
                 if self.use_smote:
                     X_fold_train, y_fold_train = self.apply_smote(X_fold_train, y_fold_train)
